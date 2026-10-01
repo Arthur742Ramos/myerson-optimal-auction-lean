@@ -3,6 +3,8 @@ import Myerson.Dist
 import Myerson.MyersonLemma
 import Myerson.VirtualValue
 import Myerson.VirtualSurplus
+import Myerson.FubiniCoord
+import Myerson.OptimalAuction
 
 /-
 Myerson's 1981 optimal auction design theorem, formalized in Lean 4.
@@ -13,7 +15,7 @@ Milestone plan:
       (adapted from the revenue-equivalence development).
   M3  Virtual surplus identity: expected payment equals expected virtual
       surplus minus base utility.
-  M4  Optimal auction theorem: allocating to the highest nonnegative virtual
+  M4  DONE. Optimal auction theorem: allocating to the highest nonnegative virtual
       value maximizes expected revenue over BIC + interim-IR mechanisms
       (regular case; no ironing).
   M5  Palomar Challenge/Solution packaging.
