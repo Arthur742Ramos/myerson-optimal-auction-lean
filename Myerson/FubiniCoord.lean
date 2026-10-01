@@ -1,7 +1,10 @@
-import Myerson.VirtualSurplus
-import Mathlib.MeasureTheory.Constructions.Pi
-import Mathlib.MeasureTheory.Integral.IntegrableOn
-import Mathlib.MeasureTheory.Integral.Prod
+module
+
+public import Myerson.VirtualSurplus
+public import Mathlib.MeasureTheory.Constructions.Pi
+public import Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Myerson.Dist
 
 open MeasureTheory
 open scoped ENNReal
@@ -13,43 +16,43 @@ namespace Myerson
 variable {n : Nat} (D : Fin n → TypeDist)
 
 /-- Joint prior over type profiles: the product of the marginal type measures. -/
-noncomputable abbrev jointMu : Measure (Fin n → Real) :=
+public noncomputable abbrev jointMu : Measure (Fin n → Real) :=
   Measure.pi fun j => (D j).mu
 
 /-- Interim allocation rule induced by an ex post allocation rule X. -/
-noncomputable def interimAlloc (X : Fin n → (Fin n → Real) → Real)
+@[expose] public noncomputable def interimAlloc (X : Fin n → (Fin n → Real) → Real)
     (i : Fin n) (s : Real) : Real :=
   ∫ t, X i (Function.update t i s) ∂(jointMu D)
 
-instance : IsProbabilityMeasure (jointMu D) := by
+public instance : IsProbabilityMeasure (jointMu D) := by
   haveI := fun j => (D j).isProb
   exact Measure.pi.instIsProbabilityMeasure (fun j => (D j).mu)
 
 /-- Splitting a type profile into bidder i's type and everyone else's types. -/
-noncomputable def splitEquiv (D : Fin n → TypeDist) (i : Fin n) :
+@[expose] public noncomputable def splitEquiv (D : Fin n → TypeDist) (i : Fin n) :
     (Fin n → Real) ≃ᵐ Real × ({j : Fin n // j ≠ i} → Real) :=
   (MeasurableEquiv.piEquivPiSubtypeProd (fun _ : Fin n => Real) (fun j => j = i)).trans
     ((MeasurableEquiv.piUnique _).prodCongr (MeasurableEquiv.refl _))
 
-@[simp] lemma splitEquiv_apply (i : Fin n) (t : Fin n → Real) :
+@[simp] public lemma splitEquiv_apply (i : Fin n) (t : Fin n → Real) :
     splitEquiv D i t = (t i, fun j : {j : Fin n // j ≠ i} => t j.val) := by
   change (t i, fun j : {j : Fin n // j ≠ i} => t j.val) = _
   rfl
 
-@[simp] lemma splitEquiv_symm_apply (i : Fin n)
+@[simp] public lemma splitEquiv_symm_apply (i : Fin n)
     (p : Real × ({j : Fin n // j ≠ i} → Real)) (j : Fin n) :
     (splitEquiv D i).symm p j = if h : j = i then p.1 else p.2 ⟨j, h⟩ := by
   change (if h : j = i then p.1 else p.2 ⟨j, h⟩) = _
   rfl
 
-lemma splitEquiv_symm_i (i : Fin n)
+public lemma splitEquiv_symm_i (i : Fin n)
     (p : Real × ({j : Fin n // j ≠ i} → Real)) :
     (splitEquiv D i).symm p i = p.1 := by
   rw [splitEquiv_symm_apply]
   exact dite_eq_left rfl
 
 /-- Updating the i-coordinate of a split profile only changes the i-coordinate. -/
-lemma update_symm_eq (i : Fin n) (s s' : Real)
+public lemma update_symm_eq (i : Fin n) (s s' : Real)
     (u : {j : Fin n // j ≠ i} → Real) :
     Function.update ((splitEquiv D i).symm (s', u)) i s
       = (splitEquiv D i).symm (s, u) := by
@@ -60,7 +63,7 @@ lemma update_symm_eq (i : Fin n) (s s' : Real)
   · simp only [Function.update_of_ne h, splitEquiv_symm_apply, dite_eq_right h]
 
 /-- The splitting equivalence preserves the product measure. -/
-lemma measurePreserving_splitEquiv (i : Fin n) :
+public lemma measurePreserving_splitEquiv (i : Fin n) :
     MeasurePreserving (splitEquiv D i) (jointMu D)
       ((D i).mu.prod (Measure.pi fun j : {j : Fin n // j ≠ i} => (D j.val).mu)) := by
   haveI := fun j => (D j).isProb
@@ -95,7 +98,7 @@ lemma measurePreserving_splitEquiv (i : Fin n) :
       (MeasurePreserving.id (Measure.pi fun j : {j : Fin n // j ≠ i} => (D j.val).mu))
   exact MeasurePreserving.trans hsplit hcollapse
 
-lemma measurable_update (D : Fin n → TypeDist) (i : Fin n) (s : Real) :
+public lemma measurable_update (D : Fin n → TypeDist) (i : Fin n) (s : Real) :
     Measurable fun t : Fin n → Real => Function.update t i s := by
   apply measurable_pi_iff.mpr
   intro j
@@ -105,20 +108,20 @@ lemma measurable_update (D : Fin n → TypeDist) (i : Fin n) (s : Real) :
       (measurable_const : Measurable fun _ : Fin n → Real => s)
   · simpa only [Function.update_of_ne h] using (measurable_pi_apply j)
 
-lemma integrable_update (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
+public lemma integrable_update (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
     (hXmeas : Measurable (X i)) (hXbnd : ∀ t, ‖X i t‖ ≤ 1) (s : Real) :
     Integrable (fun t => X i (Function.update t i s)) (jointMu D) := by
   apply Integrable.of_bound
     (hXmeas.comp (measurable_update D i s)).aestronglyMeasurable 1
   exact ae_of_all _ fun t => hXbnd (Function.update t i s)
 
-lemma interimAlloc_nonneg (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
+public lemma interimAlloc_nonneg (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
     (hXnn : ∀ i t, 0 ≤ X i t) (s : Real) :
     0 ≤ interimAlloc D X i s := by
   unfold interimAlloc
   exact integral_nonneg fun t => hXnn i (Function.update t i s)
 
-lemma interimAlloc_le_one (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
+public lemma interimAlloc_le_one (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
     (hXmeas : ∀ i, Measurable (X i)) (hXbnd : ∀ i t, ‖X i t‖ ≤ 1) (s : Real) :
     interimAlloc D X i s ≤ 1 := by
   unfold interimAlloc
@@ -134,7 +137,7 @@ lemma interimAlloc_le_one (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
       change ((jointMu D) Set.univ).toReal • (1 : Real) = 1
       rw [measure_univ, ENNReal.toReal_one, one_smul]
 
-lemma measurable_interimAlloc (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
+public lemma measurable_interimAlloc (i : Fin n) (X : Fin n → (Fin n → Real) → Real)
     (hXmeas : Measurable (X i)) :
     Measurable (interimAlloc D X i) := by
   have hupdate :
@@ -154,7 +157,7 @@ lemma measurable_interimAlloc (i : Fin n) (X : Fin n → (Fin n → Real) → Re
     hXmeas.comp hupdate
   exact (hmeas.stronglyMeasurable.integral_prod_left' (μ := jointMu D)).measurable
 
-lemma integrable_psi_fst (i : Fin n) (ψ : Real → Real) (hψ : Integrable ψ (D i).mu) :
+public lemma integrable_psi_fst (i : Fin n) (ψ : Real → Real) (hψ : Integrable ψ (D i).mu) :
     Integrable (fun p : Real × ({j : Fin n // j ≠ i} → Real) => ψ p.1)
       ((D i).mu.prod (Measure.pi fun j : {j : Fin n // j ≠ i} => (D j.val).mu)) := by
   haveI := fun j : {j : Fin n // j ≠ i} => (D j.val).isProb
@@ -181,7 +184,7 @@ lemma integrable_psi_fst (i : Fin n) (ψ : Real → Real) (hψ : Integrable ψ (
   exact hfin
 
 /-- Integrability of ψ(s) * X i (reassembled profile) on the split product. -/
-lemma integrable_psiX_prod (i : Fin n) (ψ : Real → Real)
+public lemma integrable_psiX_prod (i : Fin n) (ψ : Real → Real)
     (X : Fin n → (Fin n → Real) → Real)
     (hXmeas : Measurable (X i)) (hXbnd : ∀ t, ‖X i t‖ ≤ 1)
     (hψ : Integrable ψ (D i).mu) :
@@ -196,7 +199,7 @@ lemma integrable_psiX_prod (i : Fin n) (ψ : Real → Real)
   exact mul_comm _ _
 
 /-- Transported to the joint prior. -/
-lemma integrable_psiX (i : Fin n) (ψ : Real → Real)
+public lemma integrable_psiX (i : Fin n) (ψ : Real → Real)
     (X : Fin n → (Fin n → Real) → Real)
     (hXmeas : Measurable (X i)) (hXbnd : ∀ t, ‖X i t‖ ≤ 1)
     (hψ : Integrable ψ (D i).mu) :
@@ -216,7 +219,7 @@ lemma integrable_psiX (i : Fin n) (ψ : Real → Real)
 
 /-- Fubini across bidder i's coordinate: the interim expectation of ψ against the
 interim allocation equals the ex post expectation of ψ(t i) against X. -/
-theorem fubini_coord (i : Fin n) (ψ : Real → Real)
+public theorem fubini_coord (i : Fin n) (ψ : Real → Real)
     (X : Fin n → (Fin n → Real) → Real)
     (hXmeas : Measurable (X i))
     (hXbnd : ∀ t, ‖X i t‖ ≤ 1)

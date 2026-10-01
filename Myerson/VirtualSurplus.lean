@@ -1,7 +1,11 @@
-import Myerson.MyersonLemma
-import Myerson.VirtualValue
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Measure.WithDensity
+module
+
+public import Myerson.MyersonLemma
+public import Myerson.VirtualValue
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Measure.WithDensity
+public import Myerson.Defs
+public import Myerson.Dist
 
 open MeasureTheory
 open scoped ENNReal
@@ -13,11 +17,11 @@ namespace MyersonOptimalAuction
 /-- Product integrand for the Fubini step of the virtual-surplus identity:
 the allocation at `s` when `s` lies in the envelope interval `(0, t]`
 for type `t`, and `0` otherwise. -/
-def fubiniIntegrand (x : Real → Real) : ℝ × ℝ → ℝ :=
+@[expose] public def fubiniIntegrand (x : Real → Real) : ℝ × ℝ → ℝ :=
   fun q => (Set.Ioc 0 q.1).indicator x q.2
 
 /-- The Fubini integrand is measurable when the allocation rule is monotone. -/
-lemma measurable_fubini (x : Real → Real) (hx : Monotone x) :
+public lemma measurable_fubini (x : Real → Real) (hx : Monotone x) :
     Measurable (fubiniIntegrand x) := by
   have hx2 : Measurable (fun q : ℝ × ℝ => x q.2) := hx.measurable.comp measurable_snd
   have htri : MeasurableSet {q : ℝ × ℝ | 0 < q.2 ∧ q.2 ≤ q.1} := by
@@ -52,7 +56,7 @@ end MyersonOptimalAuction
 namespace TypeDist
 
 /-- The type distribution is the volume measure weighted by the density. -/
-lemma mu_eq_withDensity (D : TypeDist) :
+public lemma mu_eq_withDensity (D : TypeDist) :
     D.mu = volume.withDensity (fun t => ENNReal.ofReal (D.f t)) := by
   apply Measure.ext
   intro s hs
@@ -61,7 +65,7 @@ lemma mu_eq_withDensity (D : TypeDist) :
       (ae_of_all _ fun t => D.f_nonneg t)]
 
 /-- Types are almost surely nonnegative under the type distribution. -/
-lemma ae_nonneg (D : TypeDist) : ∀ᵐ t ∂D.mu, 0 ≤ t := by
+public lemma ae_nonneg (D : TypeDist) : ∀ᵐ t ∂D.mu, 0 ≤ t := by
   rw [ae_iff]
   have hset : {t : Real | ¬ 0 ≤ t} = Set.Iio 0 := by
     ext t
@@ -75,7 +79,7 @@ lemma ae_nonneg (D : TypeDist) : ∀ᵐ t ∂D.mu, 0 ≤ t := by
 
 /-- Integrability against the type distribution is integrability of the
 density-weighted function against volume. -/
-lemma integrable_mul_density (D : TypeDist) {g : Real → Real} :
+public lemma integrable_mul_density (D : TypeDist) {g : Real → Real} :
     Integrable g D.mu ↔ Integrable (fun t => g t * D.f t) volume := by
   have hmeas : Measurable (fun t => ENNReal.ofReal (D.f t)) :=
     ENNReal.measurable_ofReal.comp D.f_measurable
@@ -88,7 +92,7 @@ lemma integrable_mul_density (D : TypeDist) {g : Real → Real} :
 
 /-- The Bochner integral against the type distribution is the density-weighted
 volume integral. -/
-lemma integral_density (D : TypeDist) (g : Real → Real) :
+public lemma integral_density (D : TypeDist) (g : Real → Real) :
     ∫ t, g t ∂D.mu = ∫ t, g t * D.f t ∂volume := by
   have hmeas : Measurable (fun t => ENNReal.ofReal (D.f t)) :=
     ENNReal.measurable_ofReal.comp D.f_measurable
@@ -121,7 +125,7 @@ private lemma measurableSet_fiber (s : Real) :
 (over the type distribution) of the allocation integral from the reference
 type zero equals the volume integral of the allocation weighted by the
 survival probability. -/
-lemma tonelli_allocation (x : Real → Real) (D : TypeDist)
+public lemma tonelli_allocation (x : Real → Real) (D : TypeDist)
     (hx : Monotone x)
     (_hIntG : Integrable (fun t => ∫ s in (0:Real)..t, x s) D.mu)
     (hInt : Integrable (fun s => x s * (1 - D.F s)) volume) :
@@ -262,7 +266,7 @@ type) is sharp: without it the identity is false. For example, a constant unit
 allocation with zero payments under a uniform[1,2] prior satisfies BIC and all
 integrability hypotheses, yet has expected payment `0 ≠ 1` = expected virtual
 surplus minus reference utility. -/
-theorem virtualSurplusIdentity (x p : Real → Real) (D : TypeDist)
+public theorem virtualSurplusIdentity (x p : Real → Real) (D : TypeDist)
     (hBIC : BIC x p)
     (hsupp : ∀ t : Real, 0 < t → 0 < D.F t)
     (_hInt_p : Integrable p D.mu)

@@ -1,7 +1,9 @@
-import Myerson.Defs
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Linarith
+module
+
+public import Myerson.Defs
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Linarith
 
 open MeasureTheory
 
@@ -10,7 +12,7 @@ noncomputable section
 namespace MyersonOptimalAuction
 
 /-- Bayesian incentive compatibility makes the interim allocation rule monotone. -/
-lemma x_monotone_of_BIC (x p : Real → Real) (h : BIC x p) : Monotone x := by
+public lemma x_monotone_of_BIC (x p : Real → Real) (h : BIC x p) : Monotone x := by
   intro s t hst
   by_cases heq : s = t
   · subst t
@@ -31,7 +33,7 @@ lemma x_monotone_of_BIC (x p : Real → Real) (h : BIC x p) : Monotone x := by
 
 /-- Under Bayesian incentive compatibility, the utility gap lies between the
 type gap times the allocation at the lower and upper types. -/
-lemma bic_sandwich (x p : Real → Real) (h : BIC x p) (s t : Real) (_hst : s ≤ t) :
+public lemma bic_sandwich (x p : Real → Real) (h : BIC x p) (s t : Real) (_hst : s ≤ t) :
     ((t - s) * x s ≤ interimUtility x p t - interimUtility x p s) ∧
       (interimUtility x p t - interimUtility x p s ≤ (t - s) * x t) := by
   have hts := bic_apply x p h t s
@@ -46,7 +48,7 @@ lemma bic_sandwich (x p : Real → Real) (h : BIC x p) (s t : Real) (_hst : s �
 /-- Under Bayesian incentive compatibility, the utility difference over an ordered
 interval equals the integral of the allocation rule. The proof squeezes utility
 and the integral between common finite endpoint sums. -/
-lemma envelope_integral_aux (x p : Real → Real) (hBIC : BIC x p)
+public lemma envelope_integral_aux (x p : Real → Real) (hBIC : BIC x p)
     (a b : Real) (hab : a ≤ b) :
     interimUtility x p b - interimUtility x p a = ∫ s in a..b, x s := by
   rcases eq_or_lt_of_le hab with rfl | _hpos
@@ -218,7 +220,7 @@ lemma envelope_integral_aux (x p : Real → Real) (hBIC : BIC x p)
 
 /-- Under Bayesian incentive compatibility, utility at every real type equals
 utility at the reference type zero plus the oriented allocation integral. -/
-theorem envelope_integral (x p : Real → Real) (hBIC : BIC x p) (t : Real) :
+public theorem envelope_integral (x p : Real → Real) (hBIC : BIC x p) (t : Real) :
     interimUtility x p t - interimUtility x p 0 = ∫ s in (0 : Real)..t, x s := by
   by_cases ht : 0 ≤ t
   · exact envelope_integral_aux x p hBIC 0 t ht
@@ -228,7 +230,7 @@ theorem envelope_integral (x p : Real → Real) (hBIC : BIC x p) (t : Real) :
 
 /-- Bayesian incentive compatibility determines payment from allocation and
 utility at the reference type zero. -/
-theorem payment_formula_of_BIC (x p : Real → Real) (hBIC : BIC x p) (t : Real) :
+public theorem payment_formula_of_BIC (x p : Real → Real) (hBIC : BIC x p) (t : Real) :
     p t = t * x t - interimUtility x p 0 - ∫ s in (0 : Real)..t, x s := by
   have h := envelope_integral x p hBIC t
   rw [interimUtility_apply x p t] at h
@@ -237,7 +239,7 @@ theorem payment_formula_of_BIC (x p : Real → Real) (hBIC : BIC x p) (t : Real)
 /-- A monotone interim allocation rule and the envelope payment formula imply
 Bayesian incentive compatibility, using utility at the reference type zero as the
 integration constant. -/
-theorem bic_of_monotone_of_payment (x p : Real → Real) (hmono : Monotone x)
+public theorem bic_of_monotone_of_payment (x p : Real → Real) (hmono : Monotone x)
     (hpay : ∀ t, p t = t * x t - interimUtility x p 0 -
       ∫ s in (0 : Real)..t, x s) : BIC x p := by
   intro t r
@@ -270,7 +272,7 @@ theorem bic_of_monotone_of_payment (x p : Real → Real) (hmono : Monotone x)
 
 /-- Myerson's lemma: Bayesian incentive compatibility is equivalent to monotone
 interim allocation and the envelope payment formula at the reference type zero. -/
-theorem myersonLemma (x p : Real → Real) :
+public theorem myersonLemma (x p : Real → Real) :
     BIC x p ↔ Monotone x ∧ ∀ t,
       p t = t * x t - interimUtility x p 0 - ∫ s in (0 : Real)..t, x s := by
   constructor

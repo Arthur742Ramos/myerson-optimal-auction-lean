@@ -1,8 +1,13 @@
-import Myerson.FubiniCoord
-import Myerson.MyersonLemma
-import Myerson.VirtualSurplus
-import Mathlib.Data.Finset.Max
-import Mathlib.MeasureTheory.Order.Lattice
+module
+
+public import Myerson.FubiniCoord
+public import Myerson.MyersonLemma
+public import Myerson.VirtualSurplus
+public import Mathlib.Data.Finset.Max
+public import Mathlib.MeasureTheory.Order.Lattice
+public import Myerson.Dist
+public import Myerson.Defs
+public import Myerson.VirtualValue
 
 open MeasureTheory
 open MyersonOptimalAuction
@@ -14,16 +19,16 @@ namespace Myerson
 variable {n : Nat} (D : Fin n → TypeDist) (hn : 0 < n)
 
 /-- The largest virtual value at a type profile. -/
-noncomputable def maxVirt (t : Fin n → Real) : Real :=
+@[expose] public noncomputable def maxVirt (t : Fin n → Real) : Real :=
   Finset.univ.sup' ⟨⟨0, hn⟩, Finset.mem_univ _⟩
     (fun i => virtualValue (D i).F (D i).f (t i))
 
 /-- Bidders attaining the largest virtual value. -/
-noncomputable def attainers (t : Fin n → Real) : Finset (Fin n) :=
+@[expose] public noncomputable def attainers (t : Fin n → Real) : Finset (Fin n) :=
   Finset.univ.filter
     (fun i => virtualValue (D i).F (D i).f (t i) = maxVirt D hn t)
 
-lemma attainers_nonempty (t : Fin n → Real) : (attainers D hn t).Nonempty := by
+public lemma attainers_nonempty (t : Fin n → Real) : (attainers D hn t).Nonempty := by
   classical
   obtain ⟨j, hj, heq⟩ := Finset.exists_mem_eq_sup'
     (s := (Finset.univ : Finset (Fin n)))
@@ -32,13 +37,13 @@ lemma attainers_nonempty (t : Fin n → Real) : (attainers D hn t).Nonempty := b
   exact ⟨j, Finset.mem_filter.mpr ⟨hj, heq.symm⟩⟩
 
 /-- Ties for largest virtual value are broken by the least bidder index. -/
-noncomputable def winner (t : Fin n → Real) : Fin n :=
+@[expose] public noncomputable def winner (t : Fin n → Real) : Fin n :=
   (attainers D hn t).min' (attainers_nonempty D hn t)
 
-lemma winner_mem (t : Fin n → Real) : winner D hn t ∈ attainers D hn t :=
+public lemma winner_mem (t : Fin n → Real) : winner D hn t ∈ attainers D hn t :=
   Finset.min'_mem _ _
 
-lemma winner_eq_iff (t : Fin n → Real) (i : Fin n) :
+public lemma winner_eq_iff (t : Fin n → Real) (i : Fin n) :
     winner D hn t = i ↔
       virtualValue (D i).F (D i).f (t i) = maxVirt D hn t ∧
         ∀ j, virtualValue (D j).F (D j).f (t j) = maxVirt D hn t → i ≤ j := by
@@ -60,18 +65,18 @@ lemma winner_eq_iff (t : Fin n → Real) (i : Fin n) :
       (hleast _ (Finset.mem_filter.mp (winner_mem D hn t)).2)
 
 /-- Allocate to the selected bidder exactly when the largest virtual value is positive. -/
-noncomputable def optAlloc (i : Fin n) : (Fin n → Real) → Real :=
+@[expose] public noncomputable def optAlloc (i : Fin n) : (Fin n → Real) → Real :=
   {t : Fin n → Real | 0 < maxVirt D hn t ∧ winner D hn t = i}.indicator 1
 
-noncomputable def optInterim (i : Fin n) : Real → Real :=
+@[expose] public noncomputable def optInterim (i : Fin n) : Real → Real :=
   interimAlloc D (optAlloc D hn) i
 
 /-- Envelope payments normalized to utility zero at type zero. -/
-noncomputable def optPayment (i : Fin n) (t : Real) : Real :=
+@[expose] public noncomputable def optPayment (i : Fin n) (t : Real) : Real :=
   t * optInterim D hn i t - ∫ s in (0 : Real)..t, optInterim D hn i s
 
 include hn in
-lemma virt_nonpos_of_nonpos (i : Fin n) {s : Real} (hs : s ≤ 0) :
+public lemma virt_nonpos_of_nonpos (i : Fin n) {s : Real} (hs : s ≤ 0) :
     virtualValue (D i).F (D i).f s ≤ 0 := by
   rcases lt_or_eq_of_le hs with hneg | rfl
   · have hF := (D i).F_eq_zero_of_nonpos (le_of_lt hneg)
@@ -84,7 +89,7 @@ lemma virt_nonpos_of_nonpos (i : Fin n) {s : Real} (hs : s ≤ 0) :
     rw [hF, sub_zero, zero_sub]
     exact neg_nonpos.mpr (one_div_nonneg.mpr ((D i).f_nonneg 0))
 
-lemma measurable_maxVirt : Measurable (maxVirt D hn) := by
+public lemma measurable_maxVirt : Measurable (maxVirt D hn) := by
   classical
   have hne : (Finset.univ : Finset (Fin n)).Nonempty :=
     ⟨⟨0, hn⟩, Finset.mem_univ _⟩
@@ -99,7 +104,7 @@ lemma measurable_maxVirt : Measurable (maxVirt D hn) := by
     exact Finset.sup'_apply hne _ t
   rwa [heq] at hm
 
-lemma measurableSet_winner_eq (i : Fin n) :
+public lemma measurableSet_winner_eq (i : Fin n) :
     MeasurableSet {t : Fin n → Real | winner D hn t = i} := by
   classical
   have heq : {t : Fin n → Real | winner D hn t = i} =
@@ -134,24 +139,24 @@ lemma measurableSet_winner_eq (i : Fin n) :
     ((D j).measurable_virtualValue.comp (measurable_pi_apply j))
     (measurable_maxVirt D hn)).compl
 
-lemma measurable_optAlloc (i : Fin n) : Measurable (optAlloc D hn i) := by
+public lemma measurable_optAlloc (i : Fin n) : Measurable (optAlloc D hn i) := by
   classical
   unfold optAlloc
   exact measurable_const.indicator
     ((measurableSet_lt measurable_const (measurable_maxVirt D hn)).inter
       (measurableSet_winner_eq D hn i))
 
-lemma measurable_optInterim (i : Fin n) : Measurable (optInterim D hn i) :=
+public lemma measurable_optInterim (i : Fin n) : Measurable (optInterim D hn i) :=
   measurable_interimAlloc D i (optAlloc D hn) (measurable_optAlloc D hn i)
 
-lemma optAlloc_nonneg (i : Fin n) (t : Fin n → Real) : 0 ≤ optAlloc D hn i t := by
+public lemma optAlloc_nonneg (i : Fin n) (t : Fin n → Real) : 0 ≤ optAlloc D hn i t := by
   classical
   unfold optAlloc
   by_cases h : t ∈ {t : Fin n → Real | 0 < maxVirt D hn t ∧ winner D hn t = i}
   · simpa only [Set.indicator_of_mem h, Pi.one_apply] using (zero_le_one : (0 : Real) ≤ 1)
   · simpa only [Set.indicator_of_notMem h] using (le_refl (0 : Real))
 
-lemma optAlloc_le_one (i : Fin n) (t : Fin n → Real) : optAlloc D hn i t ≤ 1 := by
+public lemma optAlloc_le_one (i : Fin n) (t : Fin n → Real) : optAlloc D hn i t ≤ 1 := by
   classical
   unfold optAlloc
   by_cases h : t ∈ {t : Fin n → Real | 0 < maxVirt D hn t ∧ winner D hn t = i}
@@ -163,14 +168,14 @@ private lemma optAlloc_norm_le_one (i : Fin n) (t : Fin n → Real) :
   rw [Real.norm_eq_abs, abs_le]
   exact ⟨by linarith [optAlloc_nonneg D hn i t], optAlloc_le_one D hn i t⟩
 
-lemma optInterim_nonneg (i : Fin n) (s : Real) : 0 ≤ optInterim D hn i s :=
+public lemma optInterim_nonneg (i : Fin n) (s : Real) : 0 ≤ optInterim D hn i s :=
   interimAlloc_nonneg D i (optAlloc D hn) (fun i t => optAlloc_nonneg D hn i t) s
 
-lemma optInterim_le_one (i : Fin n) (s : Real) : optInterim D hn i s ≤ 1 :=
+public lemma optInterim_le_one (i : Fin n) (s : Real) : optInterim D hn i s ≤ 1 :=
   interimAlloc_le_one D i (optAlloc D hn) (fun i => measurable_optAlloc D hn i)
     (fun i t => optAlloc_norm_le_one D hn i t) s
 
-lemma optInterim_norm_le_one (i : Fin n) (t : Real) : ‖optInterim D hn i t‖ ≤ 1 := by
+public lemma optInterim_norm_le_one (i : Fin n) (t : Real) : ‖optInterim D hn i t‖ ≤ 1 := by
   rw [Real.norm_eq_abs, abs_le]
   exact ⟨by linarith [optInterim_nonneg D hn i t], optInterim_le_one D hn i t⟩
 
@@ -178,7 +183,7 @@ private lemma virt_le_maxVirt (i : Fin n) (t : Fin n → Real) :
     virtualValue (D i).F (D i).f (t i) ≤ maxVirt D hn t :=
   Finset.le_sup' (fun j => virtualValue (D j).F (D j).f (t j)) (Finset.mem_univ i)
 
-lemma virtSurplus_le (X : Fin n → (Fin n → Real) → Real)
+public lemma virtSurplus_le (X : Fin n → (Fin n → Real) → Real)
     (hXnn : ∀ i t, 0 ≤ X i t) (hXsum : ∀ t, ∑ i, X i t ≤ 1)
     (t : Fin n → Real) :
     ∑ i, virtualValue (D i).F (D i).f (t i) * X i t ≤ max 0 (maxVirt D hn t) := by
@@ -199,7 +204,7 @@ lemma virtSurplus_le (X : Fin n → (Fin n → Real) → Real)
       mul_nonpos_of_nonpos_of_nonneg ((virt_le_maxVirt D hn i t).trans hMle)
         (hXnn i t)).trans (le_max_left _ _)
 
-lemma virtSurplus_opt (t : Fin n → Real) :
+public lemma virtSurplus_opt (t : Fin n → Real) :
     ∑ i, virtualValue (D i).F (D i).f (t i) * optAlloc D hn i t =
       max 0 (maxVirt D hn t) := by
   classical
@@ -239,7 +244,7 @@ lemma virtSurplus_opt (t : Fin n → Real) :
         exact (not_lt.mpr hMle) hpos) _
     simp only [halloc, mul_zero, Finset.sum_const_zero, max_eq_left hMle]
 
-lemma optAlloc_mono_update (i : Fin n) (u : Fin n → Real) {s s' : Real}
+public lemma optAlloc_mono_update (i : Fin n) (u : Fin n → Real) {s s' : Real}
     (hle : s ≤ s') (hreg : Monotone fun t => virtualValue (D i).F (D i).f t) :
     optAlloc D hn i (Function.update u i s) ≤ optAlloc D hn i (Function.update u i s') := by
   classical
@@ -316,7 +321,7 @@ lemma optAlloc_mono_update (i : Fin n) (u : Fin n → Real) {s s' : Real}
     rw [hzero]
     exact optAlloc_nonneg D hn i _
 
-lemma optInterim_mono (hreg : Regular D) (i : Fin n) :
+public lemma optInterim_mono (hreg : Regular D) (i : Fin n) :
     Monotone fun s => optInterim D hn i s := by
   intro s s' hle
   show interimAlloc D (optAlloc D hn) i s ≤ interimAlloc D (optAlloc D hn) i s'
@@ -328,7 +333,7 @@ lemma optInterim_mono (hreg : Regular D) (i : Fin n) :
       (optAlloc_norm_le_one D hn i) s')
     (Filter.Eventually.of_forall fun u => optAlloc_mono_update D hn i u hle (hreg i))
 
-lemma optInterim_eq_zero_of_nonpos (i : Fin n) {s : Real} (hs : s ≤ 0) :
+public lemma optInterim_eq_zero_of_nonpos (i : Fin n) {s : Real} (hs : s ≤ 0) :
     optInterim D hn i s = 0 := by
   classical
   have hzero : ∀ t : Fin n → Real, optAlloc D hn i (Function.update t i s) = 0 := by
@@ -343,13 +348,13 @@ lemma optInterim_eq_zero_of_nonpos (i : Fin n) {s : Real} (hs : s ≤ 0) :
   show (∫ t : Fin n → Real, optAlloc D hn i (Function.update t i s) ∂(jointMu D)) = 0
   simp only [hzero, integral_zero]
 
-lemma integrable_optInterim (i : Fin n) : Integrable (optInterim D hn i) (D i).mu := by
+public lemma integrable_optInterim (i : Fin n) : Integrable (optInterim D hn i) (D i).mu := by
   haveI := (D i).isProb
   apply Integrable.of_bound (measurable_optInterim D hn i).aestronglyMeasurable 1
   exact Filter.Eventually.of_forall (optInterim_norm_le_one D hn i)
 
 include hn in
-lemma integrable_interimAlloc_of {X : Fin n → (Fin n → Real) → Real}
+public lemma integrable_interimAlloc_of {X : Fin n → (Fin n → Real) → Real}
     (hXmeas : ∀ i, Measurable (X i)) (hXbnd : ∀ i t, ‖X i t‖ ≤ 1) (i : Fin n) :
     Integrable (interimAlloc D X i) (D i).mu := by
   haveI := (D i).isProb
@@ -361,11 +366,11 @@ lemma integrable_interimAlloc_of {X : Fin n → (Fin n → Real) → Real}
   simpa only [interimAlloc, Measure.real, measure_univ, ENNReal.toReal_one,
     mul_one] using hb
 
-lemma optUtil_zero (i : Fin n) :
+public lemma optUtil_zero (i : Fin n) :
     interimUtility (optInterim D hn i) (optPayment D hn i) 0 = 0 := by
   simp [interimUtility, optPayment]
 
-lemma optPayment_formula (i : Fin n) (t : Real) :
+public lemma optPayment_formula (i : Fin n) (t : Real) :
     optPayment D hn i t = t * optInterim D hn i t -
       interimUtility (optInterim D hn i) (optPayment D hn i) 0 -
       ∫ s in (0 : Real)..t, optInterim D hn i s := by
@@ -373,17 +378,17 @@ lemma optPayment_formula (i : Fin n) (t : Real) :
   unfold optPayment
   ring
 
-lemma optBIC (hreg : Regular D) (i : Fin n) :
+public lemma optBIC (hreg : Regular D) (i : Fin n) :
     BIC (optInterim D hn i) (optPayment D hn i) :=
   bic_of_monotone_of_payment _ _ (optInterim_mono D hn hreg i) (optPayment_formula D hn i)
 
-lemma optUtil_eq (hreg : Regular D) (i : Fin n) (t : Real) :
+public lemma optUtil_eq (hreg : Regular D) (i : Fin n) (t : Real) :
     interimUtility (optInterim D hn i) (optPayment D hn i) t =
       ∫ s in (0 : Real)..t, optInterim D hn i s := by
   have h := envelope_integral _ _ (optBIC D hn hreg i) t
   rwa [optUtil_zero D hn i, sub_zero] at h
 
-lemma optIIR (hreg : Regular D) (i : Fin n) :
+public lemma optIIR (hreg : Regular D) (i : Fin n) :
     IIR (optInterim D hn i) (optPayment D hn i) := by
   intro t
   rw [optUtil_eq D hn hreg i t]
@@ -398,7 +403,7 @@ lemma optIIR (hreg : Regular D) (i : Fin n) :
     rw [intervalIntegral.integral_symm t 0, hzero, neg_zero]
 
 /-- The envelope primitive is measurable, even without local integrability. -/
-lemma measurable_primitive {x : Real → Real} (hx : Measurable x) :
+public lemma measurable_primitive {x : Real → Real} (hx : Measurable x) :
     Measurable fun t : Real => ∫ s in (0 : Real)..t, x s := by
   classical
   have hpos : Measurable (fun p : Real × Real => (Set.Ioc 0 p.2).indicator x p.1) := by
@@ -435,7 +440,7 @@ lemma measurable_primitive {x : Real → Real} (hx : Measurable x) :
 
 /-- A measurable allocation bounded between zero and one has an integrable primitive
 against any measure with an integrable first moment. -/
-lemma integrable_primitive {x : Real → Real} (hx_meas : Measurable x)
+public lemma integrable_primitive {x : Real → Real} (hx_meas : Measurable x)
     (hx_nn : ∀ s, 0 ≤ x s) (hx_le : ∀ s, x s ≤ 1) (mu : Measure Real)
     (hInt_id : Integrable (fun t : Real => t) mu) :
     Integrable (fun t => ∫ s in (0 : Real)..t, x s) mu := by
@@ -449,7 +454,7 @@ lemma integrable_primitive {x : Real → Real} (hx_meas : Measurable x)
     (intervalIntegral.norm_integral_le_of_norm_le_const (a := 0) (b := t) (C := 1)
       (fun s _ => hbound s))
 
-lemma integrable_optPayment (i : Fin n)
+public lemma integrable_optPayment (i : Fin n)
     (hInt_id : Integrable (fun t : Real => t) (D i).mu) :
     Integrable (optPayment D hn i) (D i).mu := by
   unfold optPayment
@@ -460,7 +465,7 @@ lemma integrable_optPayment (i : Fin n)
       (optInterim_nonneg D hn i) (optInterim_le_one D hn i) _ hInt_id
 
 include hn in
-lemma integrable_abs_psi (i : Fin n)
+public lemma integrable_abs_psi (i : Fin n)
     (hpsi : Integrable (fun t => virtualValue (D i).F (D i).f t) (D i).mu) :
     Integrable (fun t : Fin n → Real => ‖virtualValue (D i).F (D i).f (t i)‖)
       (jointMu D) := by
@@ -475,7 +480,7 @@ lemma integrable_abs_psi (i : Fin n)
   rw [heq] at hcomp
   exact hcomp
 
-lemma integrable_maxVirt_nonneg
+public lemma integrable_maxVirt_nonneg
     (hInt_psi : ∀ i, Integrable (fun t => virtualValue (D i).F (D i).f t) (D i).mu) :
     Integrable (fun t : Fin n → Real => max 0 (maxVirt D hn t)) (jointMu D) := by
   classical
@@ -502,7 +507,7 @@ lemma integrable_maxVirt_nonneg
 
 /-- For regular priors, the maximum-positive-virtual-value auction with envelope
 payments is BIC, interim individually rational, and revenue optimal. -/
-theorem optimalAuction (hreg : Regular D)
+public theorem optimalAuction (hreg : Regular D)
     (hsupp : ∀ i (t : Real), 0 < t → 0 < (D i).F t)
     (hInt_id : ∀ i, Integrable (fun t : Real => t) (D i).mu)
     (hInt_psi : ∀ i, Integrable (fun t : Real => virtualValue (D i).F (D i).f t) (D i).mu)

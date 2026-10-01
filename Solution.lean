@@ -1,4 +1,11 @@
-import Myerson.Main
+module
+
+public import Myerson.Main
+public import Myerson.Dist
+public import Myerson.Defs
+public import Myerson.VirtualSurplus
+public import Myerson.FubiniCoord
+public import Myerson.OptimalAuction
 
 open MeasureTheory
 
@@ -8,7 +15,7 @@ namespace Palomar
 
 /-- Virtual-surplus revenue identity: under BIC, the expected payment equals the
 expected virtual surplus minus the reference-type (type zero) interim utility. -/
-theorem virtualSurplusIdentity (x p : Real → Real) (D : TypeDist)
+public theorem virtualSurplusIdentity (x p : Real → Real) (D : TypeDist)
     (hBIC : BIC x p)
     (hsupp : ∀ t : Real, 0 < t → 0 < D.F t)
     (_hInt_p : Integrable p D.mu)
@@ -25,7 +32,7 @@ priors, the auction that allocates to the highest nonnegative virtual value
 (with deterministic tie-breaking) and charges envelope payments is Bayesian
 incentive compatible and interim individually rational, and it raises at least
 as much expected revenue as any feasible BIC and interim-IR mechanism. -/
-theorem optimalAuction {n : Nat} (D : Fin n → TypeDist) (hn : 0 < n)
+public theorem optimalAuction {n : Nat} (D : Fin n → TypeDist) (hn : 0 < n)
     (hreg : Regular D)
     (hsupp : ∀ i (t : Real), 0 < t → 0 < (D i).F t)
     (hInt_id : ∀ i, Integrable (fun t : Real => t) (D i).mu)
