@@ -11,13 +11,14 @@ project:
     nonnegative Lebesgue density that vanishes for negative types, so each
     prior's mass lies on [0, ∞). The formal results are
     MyersonOptimalAuction.Palomar.virtualSurplusIdentity: under BIC, the
-    support hypothesis (hsupp : ∀ t : ℝ, 0 < t → 0 < D.F t), and five
+    support hypothesis (hsupp : ∀ t : ℝ, 0 < t → 0 < D.F t, i.e. the prior
+    puts positive mass in (0, t] for every t > 0 so zero is in the support), and five
     integrability hypotheses, the expected payment equals the expected
     virtual surplus minus the interim utility at the reference type
     (type zero), expectedPayment p D = expectedVirtualSurplus x D -
     interimUtility x p 0; and MyersonOptimalAuction.Palomar.optimalAuction:
     for regular priors (hreg : Regular D, i.e. each bidder's virtual value
-    ψ(t) = t - (1 - F t) / f t is nondecreasing), the auction that allocates
+    ψ(t) = t - (1 - F t) / f t is nondecreasing on nonnegative types), the auction that allocates
     the item to the least-index bidder attaining the highest virtual value
     whenever that value is strictly positive (no sale otherwise), with
     envelope payments normalized to zero utility at type zero, is Bayesian
@@ -107,9 +108,18 @@ status:
     The zero sorry counts refer to the library (Myerson/) and
     Solution.lean; Challenge.lean carries 2 deliberate sorries (the theorem
     placeholders) per the Palomar statement-surface format; its definitions
-    carry real bodies. Regularity is Regular D := ∀ i, Monotone fun t =>
-    virtualValue (D i).F (D i).f t (nondecreasing virtual values, regular
-    case only; no ironing). The type measures have Lebesgue densities
+    carry real bodies. Regularity is Regular D := ∀ i, MonotoneOn
+    (fun t => virtualValue (D i).F (D i).f t) (Set.Ici 0) (virtual values
+    nondecreasing on nonnegative types, the type space; regular case only;
+    no ironing). M9 repair (2026-10-01): an earlier global-monotonicity
+    statement (Monotone over all of ℝ) was vacuous — no TypeDist satisfies
+    it together with hsupp (for t < 0 the density vanishes so vv(t) = t,
+    forcing vv(0) ≥ 0, but vv(0) = -1/f(0) ≤ 0 pins f(0) = 0 and vv ≥ 0 on
+    (0,∞), whose 1/(2t)-type lower bound on the density near zero
+    contradicts integrability). The repaired MonotoneOn-(Ici 0) version is
+    witnessed by MyersonOptimalAuction.uniform01_qualifies (uniform[0,1] as
+    a TypeDist: regular, hsupp, integrable identity and virtual values;
+    Myerson/Examples.lean). The type measures have Lebesgue densities
     (hasDensity) and are atomless; types are ℝ with mass on [0, ∞)
     (f_eq_zero_of_neg, F_eq_zero_of_nonpos); there is no lowest type and
     zero is the reference/normalization type. Feasibility hXsum is pointwise
@@ -135,10 +145,14 @@ status:
         Integrable (fun s => x s * (1 - D.F s)) volume;
         Integrable (fun t => virtualValue D.F D.f t * x t) D.mu):
         expectedPayment p D = expectedVirtualSurplus x D -
-        interimUtility x p 0. The support hypothesis is sharp: without it a
-        uniform[1,2] prior with x ≡ 1, p ≡ 0 satisfies BIC and all
-        integrability hypotheses yet has expected payment 0 ≠ 1 = expected
-        virtual surplus minus reference utility. The integrability
+        interimUtility x p 0. The support hypothesis is sharp (hand-checked
+        example with explicit computations in README.md): without it, D
+        uniform on [1,2] with x(s) = 0 for s ≤ 0, = s on [0,1], = 1 for
+        s ≥ 1, and p(t) = t*x(t) - ∫₀ᵗ x (i.e. 0 on (-∞,0], t²/2 on [0,1],
+        1/2 on [1,∞)) satisfies BIC and all five integrability hypotheses
+        (x(s)*(1-F(s)) is s on [0,1], 2-s on [1,2], 0 elsewhere: continuous
+        with compact support), yet E[p] = 1/2 ≠ 1 = E[virtualValue*x] -
+        U(0) (vv = 2t-2 on (1,2), ∫₁²(2t-2) = 1). The integrability
         hypotheses make the totalized Bochner integrals non-vacuous.
       sorry_count: 0
       axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -168,7 +182,7 @@ status:
       axioms: ["propext", "Classical.choice", "Quot.sound"]
       comparator_config: "comparator.json"
   fidelity:
-    divergences: "Regular case only; no ironing. Ex post feasibility is pointwise (∑ i, X i t ≤ 1 for every profile t), not almost sure. The item is allocated iff the maximal virtual value is strictly positive, with least-index tie-breaking, exactly as coded. The support hypothesis hsupp is an explicit hypothesis of both main theorems."
+    divergences: "Regular case only; no ironing. Regularity is monotonicity of virtual values on nonnegative types (Set.Ici 0), not global monotonicity over ℝ — the global version is vacuous (M9 repair, see scope). Ex post feasibility is pointwise (∑ i, X i t ≤ 1 for every profile t), not almost sure. The item is allocated iff the maximal virtual value is strictly positive, with least-index tie-breaking, exactly as coded. The support hypothesis hsupp is an explicit hypothesis of both main theorems."
 
 review:
   status: "self-assessed"

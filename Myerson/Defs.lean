@@ -11,9 +11,10 @@ namespace MyersonOptimalAuction
 /-- Virtual value is the type minus the inverse hazard rate. -/
 @[expose] public def virtualValue (F f : Real → Real) (t : Real) : Real := t - (1 - F t) / f t
 
-/-- Regularity requires each bidder to have a monotone virtual value function. -/
+/-- Regularity requires each bidder's virtual value function to be monotone
+on nonnegative types (the type space). -/
 @[expose] public def Regular {n : Nat} (D : Fin n → TypeDist) : Prop :=
-  ∀ i, Monotone fun t => virtualValue (D i).F (D i).f t
+  ∀ i, MonotoneOn (fun t => virtualValue (D i).F (D i).f t) (Set.Ici 0)
 
 /-- Interim utility of a bidder with type t facing interim allocation rule x
 and interim payment rule p (quasi-linear utility). -/

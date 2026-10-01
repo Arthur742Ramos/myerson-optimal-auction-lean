@@ -1,8 +1,8 @@
 # Myerson's Optimal Auction Theorem (Lean 4)
 
 A Lean 4 + Mathlib formalization of Myerson's 1981 optimal auction design
-theorem, **regular case** (nondecreasing virtual values; ironing for irregular
-distributions is out of scope). It is a companion to the
+theorem, **regular case** (virtual values nondecreasing on nonnegative types;
+ironing for irregular distributions is out of scope). It is a companion to the
 [revenue-equivalence](https://github.com/Arthur742Ramos/revenue-equivalence-lean)
 formalization (Palomar `PALOMAR-2026-10-01-000011`), whose BIC/envelope
 approach the interim machinery here follows.
@@ -20,8 +20,11 @@ are still modeled over all of `ℝ`: there is no lowest type.
 - Virtual value: `MyersonOptimalAuction.virtualValue (F f : Real → Real)
   (t : Real) : Real := t - (1 - F t) / f t`.
 - Regularity: `MyersonOptimalAuction.Regular {n : Nat} (D : Fin n → TypeDist)
-  : Prop := ∀ i, Monotone fun t => virtualValue (D i).F (D i).f t` — every
-  bidder's virtual value is nondecreasing in their own type.
+  : Prop := ∀ i, MonotoneOn (fun t => virtualValue (D i).F (D i).f t)
+  (Set.Ici 0)` — every bidder's virtual value is nondecreasing on
+  nonnegative types (the type space). Regularity is deliberately *not*
+  global monotonicity over all of `ℝ`: the global version is vacuous (no
+  `TypeDist` satisfies it together with `hsupp`), see the M9 note below.
 - Interim rules `x p : Real → Real`; interim utility
   `interimUtility x p t = t * x t - p t` (quasi-linear).
 - `BIC x p := ∀ t r, t * x r - p r ≤ interimUtility x p t`: truthful reporting
@@ -45,8 +48,10 @@ interim utility at the reference type (type zero) — not assumed to be zero.
 
 `MyersonOptimalAuction.virtualSurplusIdentity` proves, under
 `hBIC : BIC x p`, the support hypothesis
-`hsupp : ∀ t : Real, 0 < t → 0 < D.F t` (the distribution puts positive mass
-above every positive type), and the five integrability hypotheses
+`hsupp : ∀ t : Real, 0 < t → 0 < D.F t` (with `F` the CDF and `F 0 = 0`
+proved, this says the prior puts positive mass in `(0, t]` for every
+`t > 0`: zero is in the support, i.e. there is mass arbitrarily close to
+zero from above), and the five integrability hypotheses
 `Integrable p D.mu`, `Integrable (fun t => t * x t) D.mu`,
 `Integrable (fun t => ∫ s in (0:Real)..t, x s) D.mu`,
 `Integrable (fun s => x s * (1 - D.F s)) volume`, and
@@ -56,11 +61,23 @@ above every positive type), and the five integrability hypotheses
 expectedPayment p D = expectedVirtualSurplus x D - interimUtility x p 0.
 ```
 
-The support hypothesis is sharp: a constant unit allocation with zero
-payments under a uniform `[1,2]` prior satisfies BIC and all integrability
-hypotheses, yet has expected payment `0` while expected virtual surplus minus
-reference utility is `1`. The integrability hypotheses are load-bearing:
-without them Lean's totalized Bochner integral makes the equality vacuous.
+The support hypothesis is sharp. The following is a hand-checked example
+(all numbers verified by hand; it is not formalized in Lean): take `D`
+uniform on `[1,2]` as a `TypeDist` (`hsupp` fails, since `F = 0` on
+`(0,1)`); `x(s) = 0` for `s ≤ 0`, `x(s) = s` for `0 ≤ s ≤ 1`, `x(s) = 1`
+for `s ≥ 1` (monotone, continuous); and `p(t) = t * x(t) - ∫₀ᵗ x(s) ds`,
+i.e. `p = 0` on `(-∞, 0]`, `p(t) = t²/2` on `[0,1]`, `p(t) = 1/2` on
+`[1,∞)`. Then `(x, p)` is BIC (`x` monotone plus the envelope formula with
+`U(0) = 0`), and all five integrability hypotheses hold: `p` is bounded;
+`t * x(t)` is bounded on the support `[1,2]`; `∫₀ᵗ x` is bounded on
+`[1,2]`; `x(s) * (1 - F(s))` equals `0` on `(-∞,0]`, `s` on `[0,1]`,
+`2 - s` on `[1,2]`, `0` on `[2,∞)` — continuous with compact support,
+hence integrable over `ℝ` (its integral is `1`); and
+`virtualValue * x` is bounded on `[1,2]`. But the identity's conclusion
+fails: `E[p] = 1/2` while `E[virtualValue * x] - U(0) = 1 - 0 = 1` (on
+`(1,2)`, `virtualValue(t) = 2t - 2`, and `∫₁² (2t-2) dt = 1`). The
+integrability hypotheses are load-bearing: without them Lean's totalized
+Bochner integral makes the equality vacuous.
 
 ## Optimal auction theorem (M4, `Myerson/FubiniCoord.lean`, `Myerson/OptimalAuction.lean`)
 
@@ -105,6 +122,43 @@ is no sale otherwise. Payments are the envelope payments
 ∫ s in (0:Real)..t, optInterim D hn i s`, normalized so that
 `interimUtility (optInterim D hn i) (optPayment D hn i) 0 = 0`
 (`optUtil_zero`).
+
+## Regularity repair and non-vacuity witness (M9, `Myerson/Examples.lean`)
+
+An earlier version stated regularity as *global* monotonicity of virtual
+values over all of `ℝ`
+(`∀ i, Monotone fun t => virtualValue (D i).F (D i).f t`). That statement is
+vacuous, and the vacuity is real, not a technicality. For `t < 0` the
+density vanishes (`f_eq_zero_of_neg`), so with Lean's totalized division
+`virtualValue t = t - (1 - F t) / 0 = t`. Global monotonicity then forces
+`vv(0) ≥ sup_{t<0} t = 0`; but `vv(0) = 0 - (1 - 0) / f(0) = -1 / f(0)`,
+so `f(0) = 0` and `vv(0) = 0`, hence `vv(t) ≥ 0` for every `t > 0`. With
+`hsupp`, continuity, and `F(0) = 0`, for small `t > 0` we get
+`0 < F(t) < 1/2`, so `pos_of_interior` gives `f(t) > 0` and `vv(t) ≥ 0`
+forces `f(t) ≥ (1 - F(t)) / t > 1 / (2t)` — whose integral over `(0, δ)`
+diverges, contradicting the finite-mass density (`integrable_f`,
+integral `1`). No `TypeDist` satisfies global regularity together with
+`hsupp`.
+
+The repaired definition restricts monotonicity to nonnegative types
+(`MonotoneOn ... (Set.Ici 0)`), the standard notion: Myerson regularity is
+monotonicity of virtual values on the type space `[0, ∞)`. The one proof
+that used global monotonicity, `optAlloc_mono_update`, is repaired by a
+case split: a bidder with a negative own-type has negative virtual value
+(`optAlloc_eq_zero_of_neg`), hence never wins, so the allocation there is
+`0 ≤` anything; on `0 ≤ s ≤ s'` the `MonotoneOn` hypothesis applies
+directly.
+
+`Myerson/Examples.lean` exhibits
+`MyersonOptimalAuction.uniform01`, the uniform distribution on `[0,1]` as
+a `TypeDist`, and proves `MyersonOptimalAuction.uniform01_qualifies`: it
+is regular in the repaired sense (`uniform01_regular`), satisfies `hsupp`
+(`uniform01_hsupp`), and has integrable identity and virtual-value
+functions (`uniform01_integrable_id`, `uniform01_integrable_vv`). Its
+virtual values are `min (2t-1) t` on `[0,∞)` (`uniform01_vv`): `2t - 1`
+on `[0,1]`, `t` above `1`, and `vv(0) = -1 < 0` — a negative virtual value
+at zero is exactly what global monotonicity could not tolerate. The
+optimal-auction theorem's hypotheses are jointly satisfiable.
 
 ## Palomar packaging (M5)
 

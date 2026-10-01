@@ -7,6 +7,7 @@ public import Myerson.VirtualValue
 public import Myerson.VirtualSurplus
 public import Myerson.FubiniCoord
 public import Myerson.OptimalAuction
+public import Myerson.Examples
 
 /-
 Myerson's 1981 optimal auction design theorem, formalized in Lean 4.

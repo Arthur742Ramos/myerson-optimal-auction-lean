@@ -244,8 +244,24 @@ public lemma virtSurplus_opt (t : Fin n → Real) :
         exact (not_lt.mpr hMle) hpos) _
     simp only [halloc, mul_zero, Finset.sum_const_zero, max_eq_left hMle]
 
+/-- A bidder with a negative type has negative virtual value (the density
+vanishes there, so the totalized virtual value equals the type), hence never
+attains a positive maximum and wins nothing. -/
+public lemma optAlloc_eq_zero_of_neg (i : Fin n) (u : Fin n → Real) {s : Real}
+    (hs : s < 0) :
+    optAlloc D hn i (Function.update u i s) = 0 := by
+  have hvv : virtualValue (D i).F (D i).f s = s := by
+    rw [virtualValue_eq, (D i).f_eq_zero_of_neg s hs, div_zero, sub_zero]
+  unfold optAlloc
+  apply Set.indicator_of_notMem
+  rintro ⟨hpos, hwin⟩
+  obtain ⟨hatt0, _⟩ := (winner_eq_iff D hn (Function.update u i s) i).mp hwin
+  rw [Function.update_self, hvv] at hatt0
+  linarith
+
 public lemma optAlloc_mono_update (i : Fin n) (u : Fin n → Real) {s s' : Real}
-    (hle : s ≤ s') (hreg : Monotone fun t => virtualValue (D i).F (D i).f t) :
+    (hle : s ≤ s')
+    (hreg : MonotoneOn (fun t => virtualValue (D i).F (D i).f t) (Set.Ici 0)) :
     optAlloc D hn i (Function.update u i s) ≤ optAlloc D hn i (Function.update u i s') := by
   classical
   by_cases h1 : optAlloc D hn i (Function.update u i s) = 1
@@ -261,8 +277,14 @@ public lemma optAlloc_mono_update (i : Fin n) (u : Fin n → Real) {s s' : Real}
     obtain ⟨hatt0, hleast⟩ := (winner_eq_iff D hn (Function.update u i s) i).mp hwin
     have hatt : virtualValue (D i).F (D i).f s = maxVirt D hn (Function.update u i s) := by
       simpa only [Function.update_self] using hatt0
-    have hpsi : virtualValue (D i).F (D i).f s ≤ virtualValue (D i).F (D i).f s' :=
-      hreg hle
+    have hpsi : virtualValue (D i).F (D i).f s ≤ virtualValue (D i).F (D i).f s' := by
+      by_cases hs : s < 0
+      · -- A negative own-type cannot win (allocation is zero there),
+        -- contradicting the assumption that it wins here.
+        rw [optAlloc_eq_zero_of_neg D hn i u hs] at h1
+        exact absurd h1 zero_ne_one
+      · have hs0 : 0 ≤ s := le_of_not_gt hs
+        exact hreg (Set.mem_Ici.mpr hs0) (Set.mem_Ici.mpr (le_trans hs0 hle)) hle
     have hM' : maxVirt D hn (Function.update u i s') = virtualValue (D i).F (D i).f s' := by
       apply le_antisymm
       · unfold maxVirt
