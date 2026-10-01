@@ -4,14 +4,37 @@ version: "v0.4"
 project:
   name: "Myerson's Optimal Auction Theorem"
   description: >-
-    A Lean formalization of Myerson's 1981 optimal auction design theorem in a
-    single-parameter independent-private-values model with continuous type
-    distributions. The formalization covers the regular case (nondecreasing
-    virtual values): the virtual-surplus revenue identity and the theorem that
-    allocating to the highest nonnegative virtual value maximizes expected
-    revenue over all Bayesian incentive-compatible and interim individually
-    rational mechanisms. Ironing for irregular distributions is out of scope.
-    (Milestone M6 rewrites this description from the final Lean binders.)
+    A Lean formalization of Myerson's 1981 optimal auction theorem, regular
+    case, in a single-parameter independent-private-values model with real
+    types. Finitely many bidders draw independent types from TypeDist priors:
+    probability measures on ℝ with a continuous monotone CDF and a
+    nonnegative Lebesgue density that vanishes for negative types, so each
+    prior's mass lies on [0, ∞). The formal results are
+    MyersonOptimalAuction.Palomar.virtualSurplusIdentity: under BIC, the
+    support hypothesis (hsupp : ∀ t : ℝ, 0 < t → 0 < D.F t), and five
+    integrability hypotheses, the expected payment equals the expected
+    virtual surplus minus the interim utility at the reference type
+    (type zero), expectedPayment p D = expectedVirtualSurplus x D -
+    interimUtility x p 0; and MyersonOptimalAuction.Palomar.optimalAuction:
+    for regular priors (hreg : Regular D, i.e. each bidder's virtual value
+    ψ(t) = t - (1 - F t) / f t is nondecreasing), the auction that allocates
+    the item to the least-index bidder attaining the highest virtual value
+    whenever that value is strictly positive (no sale otherwise), with
+    envelope payments normalized to zero utility at type zero, is Bayesian
+    incentive compatible and interim individually rational, and raises at
+    least as much expected revenue as any feasible BIC and interim-IR
+    mechanism. Independence is the product measure over type profiles;
+    feasibility is pointwise (∑ i, X i t ≤ 1 for every profile t). Types
+    range over all of ℝ; zero is only the reference/normalization type,
+    never a lowest type. The Bochner integrals defining expectations are
+    totalized, so every expectation claim carries the integrability
+    hypotheses that make it non-vacuous. Ironing for irregular distributions
+    is out of scope. The Palomar registry API searches on 2026-10-01 for
+    "optimal auction", "virtual surplus", and "virtual value" returned no
+    existing Myerson optimal auction formalization ("optimal auction"
+    matched only PALOMAR-2026-10-01-000007, Bulow-Klemperer, a different
+    theorem). These are dated, limited observations, not universal
+    prior-art claims.
   authors: ["Arthur Freitas Ramos", "David Barros Hulak", "Ruy Jose Guerra Barretto de Queiroz"]
   responsible_maintainers: ["Arthur Freitas Ramos", "David Barros Hulak", "Ruy Jose Guerra Barretto de Queiroz"]
   license: "BSD-3-Clause"
@@ -19,12 +42,24 @@ project:
 sources:
   - title: "Optimal Auction Design"
     authors: ["Roger B. Myerson"]
-    type: "paper"
-    location: "Mathematics of Operations Research 6(1), 58-73, 1981"
+    type: "article"
+    location: "Mathematics of Operations Research 6(1), 58-73, 1981. https://doi.org/10.1287/moor.6.1.58"
     relationship: "formalizes"
     author_endorsement: "not-contacted"
 
-related_formalizations: []
+related_formalizations:
+  - title: "Myerson's Revenue Equivalence Theorem"
+    location: "https://github.com/Arthur742Ramos/revenue-equivalence-lean"
+    relationship: "related"
+    note: >-
+      Companion formalization by the same authors, registered on Palomar as
+      PALOMAR-2026-10-01-000011 (version 1, published 2026-10-01). This
+      development reuses its BIC/envelope machinery (Myerson's lemma: BIC
+      iff monotone interim allocation plus the envelope payment formula).
+      The two formalize different theorems: revenue equivalence (equal
+      interim allocations and equal reference-type utility force equal
+      payments) versus optimal auction design (which allocation maximizes
+      expected revenue).
 
 classification:
   arxiv: ["cs.GT", "econ.TH"]
@@ -37,13 +72,102 @@ automation:
       framework: "Lean 4 v4.35.0-rc2 and Mathlib v4.35.0-rc2"
 
 status:
-  scope: "Milestone M6 states the exact binders."
+  scope: >-
+    The exact comparator binders, checked against the library, are
+    MyersonOptimalAuction.Palomar.virtualSurplusIdentity (x p : ℝ → ℝ)
+    (D : TypeDist) (hBIC : BIC x p)
+    (hsupp : ∀ t : ℝ, 0 < t → 0 < D.F t)
+    (_hInt_p : Integrable p D.mu)
+    (hInt_tx : Integrable (fun t => t * x t) D.mu)
+    (hIntG : Integrable (fun t => ∫ s in (0:ℝ)..t, x s) D.mu)
+    (hInt_xw : Integrable (fun s => x s * (1 - D.F s)) volume)
+    (_hInt_psix : Integrable (fun t => virtualValue D.F D.f t * x t) D.mu) :
+    expectedPayment p D = expectedVirtualSurplus x D - interimUtility x p 0;
+    and MyersonOptimalAuction.Palomar.optimalAuction {n : ℕ}
+    (D : Fin n → TypeDist) (hn : 0 < n) (hreg : Regular D)
+    (hsupp : ∀ i (t : ℝ), 0 < t → 0 < (D i).F t)
+    (hInt_id : ∀ i, Integrable (fun t : ℝ => t) (D i).mu)
+    (hInt_psi : ∀ i, Integrable (fun t : ℝ => virtualValue (D i).F (D i).f t) (D i).mu)
+    (hInt_xw_star : ∀ i,
+      Integrable (fun s => Myerson.optInterim D hn i s * (1 - (D i).F s)) volume)
+    (X : Fin n → (Fin n → ℝ) → ℝ)
+    (hXmeas : ∀ i, Measurable (X i)) (hXnn : ∀ i t, 0 ≤ X i t)
+    (hXsum : ∀ t, ∑ i, X i t ≤ 1)
+    (p : Fin n → ℝ → ℝ)
+    (hBIC : ∀ i, BIC (Myerson.interimAlloc D X i) (p i))
+    (hIIR : ∀ i, IIR (Myerson.interimAlloc D X i) (p i))
+    (hInt_p : ∀ i, Integrable (p i) (D i).mu)
+    (hInt_xw : ∀ i,
+      Integrable (fun s => Myerson.interimAlloc D X i s * (1 - (D i).F s)) volume) :
+    (∀ i, BIC (Myerson.optInterim D hn i) (Myerson.optPayment D hn i)) ∧
+      (∀ i, IIR (Myerson.optInterim D hn i) (Myerson.optPayment D hn i)) ∧
+      ∑ i, expectedPayment (p i) (D i) ≤
+        ∑ i, expectedPayment (Myerson.optPayment D hn i) (D i).
+    The zero sorry counts refer to the library (Myerson/) and
+    Solution.lean; Challenge.lean carries 2 deliberate sorries (the theorem
+    placeholders) per the Palomar statement-surface format; its definitions
+    carry real bodies. Regularity is Regular D := ∀ i, Monotone fun t =>
+    virtualValue (D i).F (D i).f t (nondecreasing virtual values, regular
+    case only; no ironing). The type measures have Lebesgue densities
+    (hasDensity) and are atomless; types are ℝ with mass on [0, ∞)
+    (f_eq_zero_of_neg, F_eq_zero_of_nonpos); there is no lowest type and
+    zero is the reference/normalization type. Feasibility hXsum is pointwise
+    in the type profile. Independence is the product measure
+    Myerson.jointMu D := Measure.pi fun j => (D j).mu. Tie-breaking is
+    deterministic and measurable: the winner is the least bidder index
+    attaining the maximal virtual value (Myerson.winner), and the item is
+    allocated iff that maximal virtual value is strictly positive
+    (0 < maxVirt D hn t). IIR is ∀ t, 0 ≤ interimUtility x p t over all
+    real t.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
-  main_results: []
+  main_results:
+    - declaration: "MyersonOptimalAuction.Palomar.virtualSurplusIdentity"
+      file: "Solution.lean"
+      description: >-
+        (x p : ℝ → ℝ) (D : TypeDist) (hBIC : BIC x p)
+        (hsupp : ∀ t : ℝ, 0 < t → 0 < D.F t) plus five integrability
+        hypotheses (Integrable p D.mu;
+        Integrable (fun t => t * x t) D.mu;
+        Integrable (fun t => ∫ s in (0:ℝ)..t, x s) D.mu;
+        Integrable (fun s => x s * (1 - D.F s)) volume;
+        Integrable (fun t => virtualValue D.F D.f t * x t) D.mu):
+        expectedPayment p D = expectedVirtualSurplus x D -
+        interimUtility x p 0. The support hypothesis is sharp: without it a
+        uniform[1,2] prior with x ≡ 1, p ≡ 0 satisfies BIC and all
+        integrability hypotheses yet has expected payment 0 ≠ 1 = expected
+        virtual surplus minus reference utility. The integrability
+        hypotheses make the totalized Bochner integrals non-vacuous.
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
+    - declaration: "MyersonOptimalAuction.Palomar.optimalAuction"
+      file: "Solution.lean"
+      description: >-
+        {n : ℕ} (D : Fin n → TypeDist) (hn : 0 < n) (hreg : Regular D)
+        (hsupp : ∀ i (t : ℝ), 0 < t → 0 < (D i).F t), the first-moment and
+        virtual-value integrability hypotheses
+        (∀ i, Integrable (fun t : ℝ => t) (D i).mu;
+        ∀ i, Integrable (fun t : ℝ => virtualValue (D i).F (D i).f t) (D i).mu;
+        ∀ i, Integrable (fun s => Myerson.optInterim D hn i s * (1 - (D i).F s)) volume):
+        for every measurable ex post allocation X with pointwise
+        0 ≤ X i t and ∑ i, X i t ≤ 1, and every interim payment profile p
+        with ∀ i, BIC (Myerson.interimAlloc D X i) (p i),
+        ∀ i, IIR (Myerson.interimAlloc D X i) (p i),
+        ∀ i, Integrable (p i) (D i).mu, and
+        ∀ i, Integrable (fun s => Myerson.interimAlloc D X i s * (1 - (D i).F s)) volume,
+        the max-virtual-value auction with envelope payments is BIC and
+        interim-IR for every bidder and its expected revenue dominates:
+        ∑ i, expectedPayment (p i) (D i) ≤
+        ∑ i, expectedPayment (Myerson.optPayment D hn i) (D i). Proved by
+        applying the virtual-surplus identity bidderwise, pointwise
+        virtual-surplus maximization under feasibility, and Myerson's lemma.
+      sorry_count: 0
+      axioms: ["propext", "Classical.choice", "Quot.sound"]
+      comparator_config: "comparator.json"
   fidelity:
-    divergences: "Regular case only; no ironing."
+    divergences: "Regular case only; no ironing. Ex post feasibility is pointwise (∑ i, X i t ≤ 1 for every profile t), not almost sure. The item is allocated iff the maximal virtual value is strictly positive, with least-index tie-breaking, exactly as coded. The support hypothesis hsupp is an explicit hypothesis of both main theorems."
 
 review:
   status: "self-assessed"
