@@ -1,0 +1,2 @@
+-- Challenge module: statement surface for the Palomar comparator.
+-- Milestone M5 fills in the exact statements.

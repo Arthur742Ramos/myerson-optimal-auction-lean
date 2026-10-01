@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: "v0.4"
+
+project:
+  name: "Myerson's Optimal Auction Theorem"
+  description: >-
+    A Lean formalization of Myerson's 1981 optimal auction design theorem in a
+    single-parameter independent-private-values model with continuous type
+    distributions. The formalization covers the regular case (nondecreasing
+    virtual values): the virtual-surplus revenue identity and the theorem that
+    allocating to the highest nonnegative virtual value maximizes expected
+    revenue over all Bayesian incentive-compatible and interim individually
+    rational mechanisms. Ironing for irregular distributions is out of scope.
+    (Milestone M6 rewrites this description from the final Lean binders.)
+  authors: ["Arthur Freitas Ramos"]
+  responsible_maintainers: ["Arthur Freitas Ramos"]
+  license: "BSD-3-Clause"
+
+sources:
+  - title: "Optimal Auction Design"
+    authors: ["Roger B. Myerson"]
+    type: "paper"
+    location: "Mathematics of Operations Research 6(1), 58-73, 1981"
+    relationship: "formalizes"
+    author_endorsement: "not-contacted"
+
+related_formalizations: []
+
+classification:
+  arxiv: ["cs.GT", "econ.TH"]
+  msc2020: ["91B26"]
+
+automation:
+  methods:
+    - method: "agent"
+      models: ["GPT-6.1 via Codex"]
+      framework: "Lean 4 v4.35.0-rc2 and Mathlib v4.35.0-rc2"
+
+status:
+  scope: "Milestone M6 states the exact binders."
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: ["propext", "Classical.choice", "Quot.sound"]
+  main_results: []
+  fidelity:
+    divergences: "Regular case only; no ironing."
+
+review:
+  status: "self-assessed"
+  reviewers: ["none"]
