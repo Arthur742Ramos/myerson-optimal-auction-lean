@@ -12,8 +12,8 @@ project:
     revenue over all Bayesian incentive-compatible and interim individually
     rational mechanisms. Ironing for irregular distributions is out of scope.
     (Milestone M6 rewrites this description from the final Lean binders.)
-  authors: ["Arthur Freitas Ramos"]
-  responsible_maintainers: ["Arthur Freitas Ramos"]
+  authors: ["Arthur Freitas Ramos", "David Barros Hulak", "Ruy Jose Guerra Barretto de Queiroz"]
+  responsible_maintainers: ["Arthur Freitas Ramos", "David Barros Hulak", "Ruy Jose Guerra Barretto de Queiroz"]
   license: "BSD-3-Clause"
 
 sources:
