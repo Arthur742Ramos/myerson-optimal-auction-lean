@@ -49,6 +49,7 @@ sources:
 
 related_formalizations:
   - title: "Myerson's Revenue Equivalence Theorem"
+    id: "PALOMAR-2026-10-01-000011"
     location: "https://github.com/Arthur742Ramos/revenue-equivalence-lean"
     relationship: "related"
     note: >-
