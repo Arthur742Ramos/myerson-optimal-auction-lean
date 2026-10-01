@@ -2,6 +2,7 @@ import Myerson.Defs
 import Myerson.Dist
 import Myerson.MyersonLemma
 import Myerson.VirtualValue
+import Myerson.VirtualSurplus
 
 /-
 Myerson's 1981 optimal auction design theorem, formalized in Lean 4.
