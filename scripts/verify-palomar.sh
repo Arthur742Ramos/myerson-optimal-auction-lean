@@ -113,18 +113,26 @@ config = json.loads(pathlib.Path("comparator.json").read_text(encoding="utf-8"))
 module_files = ["Challenge.lean", "Solution.lean"]
 module_files += [str(p) for p in sorted(pathlib.Path("Myerson").rglob("*.lean"))]
 for name in module_files:
-    if pathlib.Path(name).read_text(encoding="utf-8").splitlines()[0] != "module":
-        raise SystemExit(f"error: {name} must begin with the module header")
+    lines = pathlib.Path(name).read_text(encoding="utf-8").splitlines()
+    first = next(
+        (line.strip() for line in lines
+         if line.strip() and not line.strip().startswith("--")),
+        "",
+    )
+    if first != "module" and not first.startswith("import ") \
+            and not first.startswith("public import "):
+        raise SystemExit(f"error: {name} must begin with a module or import header")
 expected_definitions = [
-    "MyersonEquivalence.interimUtility",
-    "MyersonEquivalence.BIC",
-    "MyersonEquivalence.IIR",
-    "MyersonEquivalence.expectedPayment"
+    "MyersonOptimalAuction.virtualValue",
+    "MyersonOptimalAuction.Regular",
+    "MyersonOptimalAuction.interimUtility",
+    "MyersonOptimalAuction.BIC",
+    "MyersonOptimalAuction.IIR",
+    "MyersonOptimalAuction.expectedPayment"
 ]
 expected_theorems = [
-    "MyersonEquivalence.Palomar.envelope_integral",
-    "MyersonEquivalence.Palomar.revenueEquivalence",
-    "MyersonEquivalence.Palomar.expectedMyersonEqual"
+    "MyersonOptimalAuction.Palomar.virtualSurplusIdentity",
+    "MyersonOptimalAuction.Palomar.optimalAuction"
 ]
 if config.get("challenge_module") != "Challenge":
     raise SystemExit("error: comparator challenge_module must be Challenge")
@@ -149,8 +157,8 @@ for imports in challenge_imports:
                 or imported == "Mathlib" or imported.startswith("Mathlib.")):
             raise SystemExit(f"error: Challenge imports a project or unsupported module: {imported}")
 challenge_sorry_count = len(re.findall(r"\bsorry\b", challenge))
-if challenge_sorry_count != 3:
-    raise SystemExit(f"error: Challenge.lean must contain exactly 3 sorry tokens (three theorem placeholders; definitions have real bodies), found {challenge_sorry_count}")
+if challenge_sorry_count != 2:
+    raise SystemExit(f"error: Challenge.lean must contain exactly 2 sorry tokens (two theorem placeholders; definitions have real bodies), found {challenge_sorry_count}")
 if re.search(r"\b(admit|axiom|unsafe)\b", challenge):
     raise SystemExit("error: Challenge.lean contains admit, axiom, or unsafe")
 
@@ -163,7 +171,7 @@ for path in sorted(pathlib.Path("Myerson").rglob("*.lean")):
     forbidden = re.findall(r"\b(sorry|admit|axiom|unsafe)\b", path.read_text(encoding="utf-8"))
     if forbidden:
         raise SystemExit(f"error: forbidden token(s) {sorted(set(forbidden))} found in {path}")
-print("Module headers, three Challenge placeholders, and proof-source token checks passed.")
+print("Module headers, two Challenge placeholders, and proof-source token checks passed.")
 PY
 
 lake build
@@ -205,12 +213,12 @@ names = config["definition_names"] + config["theorem_names"]
 # to the module source) rather than importing it: def bodies are not exposed
 # across module imports in Lean 4 (they appear as axiomInfo), so the check
 # must run in the module's own environment where they are defnInfo.
-# Challenge defines the comparator definitions directly; Solution imports them
-# from Myerson.Defs (verified via Challenge), so Solution only checks theorems.
+# Challenge defines the comparator definitions directly; Solution uses the
+# library's copies (verified via Challenge), so Solution only checks theorems.
 for module in ("Challenge", "Solution"):
     checks = temp / f"{module}Check.lean"
     src = pathlib.Path(f"{module}.lean").read_text(encoding="utf-8")
-    lines = [src.rstrip(), "", "public section", ""]
+    lines = [src.rstrip(), ""]
     lines.extend(f"#check @{name}" for name in names)
     lines.extend(["", "open Lean", "", "run_cmd do", "  let env ← getEnv"])
     # Definition-kind check only for Challenge (where they are defined).
@@ -232,29 +240,25 @@ for module in ("Challenge", "Solution"):
     checks.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 axioms = temp / "AxiomCheck.lean"
-axiom_lines = ["module", "", "public import Solution", "", "public section", ""]
+axiom_lines = ["import Solution", ""]
 axiom_lines.extend(f"#print axioms {name}" for name in config["theorem_names"])
 axioms.write_text("\n".join(axiom_lines) + "\n", encoding="utf-8")
 
 all_axioms = temp / "AllAxiomsCheck.lean"
-all_axioms.write_text("""module
-
-public import Solution
-
-public section
+all_axioms.write_text("""import Solution
 
 open Lean
 run_cmd do
   let env ← getEnv
   let mut checked : Nat := 0
   for (name, _) in env.constants.toList do
-    if name.toString.startsWith "MyersonEquivalence." then
+    if name.toString.startsWith "Myerson." || name.toString.startsWith "MyersonOptimalAuction." then
       let axioms ← collectAxioms name
       for ax in axioms do
         unless ax == `propext || ax == `Classical.choice || ax == `Quot.sound do
           throwError "disallowed axiom {ax} in {name}"
       checked := checked + 1
-  logInfo m!"All {checked} MyersonEquivalence declarations use only permitted axioms."
+  logInfo m!"All {checked} Myerson/MyersonOptimalAuction declarations use only permitted axioms."
 """, encoding="utf-8")
 PY
 
