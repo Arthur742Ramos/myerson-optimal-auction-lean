@@ -1,5 +1,6 @@
-import Myerson.Dist
 import Myerson.Defs
+import Myerson.Dist
+import Myerson.MyersonLemma
 import Myerson.VirtualValue
 
 /-
